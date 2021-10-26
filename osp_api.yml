@@ -108,11 +108,11 @@ public_net_name: "{{ lookup('env', 'OSP_PUBLIC_NETWORK_NAME')|default('public', 
 # extra_templates:
   #  - /usr/share/openstack-tripleo-heat-templates/environments/services/octavia.yaml
 
-heat_configs:
-  NodeRootPassword: "{{ ansible_ssh_pass }}"
-  SshServerOptions:
-    PasswordAuthentication: 'yes'
-    PermitRootLogin: 'yes'
+# heat_configs:
+  # NodeRootPassword: "{{ ansible_ssh_pass }}"
+  # SshServerOptions:
+    # PasswordAuthentication: 'yes'
+    # PermitRootLogin: 'yes'
   #- ControllerExtraConfig.neutron::agents::l3::extensions=fip_qos
   #- NeutronServicePlugins=qos,ovn-router,trunk
   #- NeutronDhcpAgentDnsmasqDnsServers=10.1.32.3
