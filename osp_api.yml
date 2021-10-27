@@ -103,7 +103,7 @@ interfaces:
 # external_interface: ens2f1
 # overcloud provider external network. This external network will be created
 # after overcloud deployment as part of post deployment tasks.
-public_net_name: "{{ lookup('env', 'OSP_PUBLIC_NETWORK_NAME')|default('public', true) }}"
+#public_net_name: "{{ lookup('env', 'OSP_PUBLIC_NETWORK_NAME')|default('public', true) }}"
 
 # extra_templates:
   #  - /usr/share/openstack-tripleo-heat-templates/environments/services/octavia.yaml
@@ -193,7 +193,7 @@ browbeat: true
 
 # define mount_nvme to mount /var/lib/nova on nvme device
 # to use nvme storage for nova instances as ephemeral disk
-mount_nvme: false
+#mount_nvme: false
 
 # enable nvme parameters
 # README has details about how to get these values
