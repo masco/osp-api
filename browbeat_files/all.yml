@@ -432,7 +432,7 @@ grafana_host: 10.1.44.200
 grafana_port: 3000
 grafana_username: admin
 grafana_password: admin
-grafana_apikey:
+grafana_apikey: grafana_apikey_value
 # Batch number of hosts per row for all-{cpu, memory, disk, network} openstack dashboards
 dashboards_batch: 20
 # For use with all-{cpu, memory, disk, network} openstack dashboards, uses the graphite prefix to create dashboards for specific openstack cloud
