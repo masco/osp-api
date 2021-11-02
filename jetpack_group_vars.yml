@@ -168,7 +168,7 @@ tenant_allocation_pools_end: 172.17.2.150
 tenant_network_vlan_id: 304
 #This allows the user to force re provision undercloud
 #default is false - not forced
-force_reprovision: true
+force_reprovision: false
 #This enables user to have a undercloud in VM
 #NOTE: now the vm is created in the ansible host, so
 #do not enable this while running from your desktop
