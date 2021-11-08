@@ -464,7 +464,7 @@ workloads:
       # Provide the MAC address of this interface you find in the undercloud.
       # Workload will prepare a scapy packet using the interface name and mac.
       - name: provider-netcreate-boot-ping
-        enabled: true
+        enabled: false
         enable_dhcp: true
         num_vms: 1
         image_name: custom-cirros
