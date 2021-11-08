@@ -394,7 +394,7 @@ workloads:
         ext_net_id:
         file: rally/rally-plugins/netcreate-boot/netcreate_nova_boot_fip_ping_sec_groups.yml
       - name: netcreate-boot-test-metadata
-        enabled: true
+        enabled: false
         image_name: cirros
         flavor_name: m1.xtiny
         username: cirros
