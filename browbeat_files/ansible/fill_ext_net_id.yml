@@ -1,0 +1,12 @@
+- hosts: localhost
+  tasks:
+    - name: get the public network id
+      shell: |
+        source ~/overcloudrc
+        openstack network show public -c id -f value
+      register: ext_net_id
+
+    - name: replace ext_net_id in browbeat-config.yaml
+      shell: |
+        source ~/stackrc
+        sed -i 's/ext_net_id:/ext_net_id: {{ ext_net_id.stdout }}/g' ~/browbeat/browbeat-config.yaml
