@@ -1,0 +1,605 @@
+# Basic set of initial stress tests to test overcloud before running complete set of benchmarks.
+browbeat:
+  cloud_name: openstack
+  rerun: 1
+  # Two types of rerun:
+  # iteration reruns on the iteration
+  # complete reruns after all workloads complete
+  # rerun_type: complete
+  rerun_type: iteration
+ansible:
+  hosts: ansible/hosts.yml
+  metadata_playbook: ansible/gather/stockpile.yml
+  logging_playbook: ansible/common_logging/browbeat_logging.yml
+  ssh_config: ansible/ssh-config
+elasticsearch:
+  enabled: false
+  host: 1.1.1.1
+  port: 9200
+  regather: false
+  metadata_files:
+    - name: hardware-metadata
+      file: metadata/hardware-metadata.json
+    - name: environment-metadata
+      file: metadata/environment-metadata.json
+    - name: software-metadata
+      file: metadata/software-metadata.json
+    - name: version
+      file: metadata/version.json
+grafana:
+  enabled: false
+  host: example.grafana.com
+  port: 3000
+  dashboards:
+    - openstack-general-system-performance
+filebeat:
+  enabled: false
+rally:
+  sleep_before: 5
+  sleep_after: 5
+  plugins:
+    - glance: rally/rally-plugins/glance
+    - neutron: rally/rally-plugins/neutron
+    - netcreate-boot: rally/rally-plugins/netcreate-boot
+    - octavia: rally/rally-plugins/octavia
+    - cinder: rally/rally-plugins/cinder
+    - nova: rally/rally-plugins/nova
+    - browbeat: rally/rally-plugins/browbeat
+    - workloads: rally/rally-plugins/workloads
+    - dynamic-workloads: rally/rally-plugins/dynamic-workloads
+shaker:
+  server: 1.1.1.1
+  port: 5555
+  flavor: m1.small
+  join_timeout: 600
+  sleep_before: 0
+  sleep_after: 0
+  shaker_region: regionOne
+  external_host: 2.2.2.2
+
+workloads:
+# file for shaker should be one of https://opendev.org/performa/shaker/src/branch/master/shaker/scenarios/openstack
+# Shaker
+  - name: shaker-l2
+    enabled: false
+    type: shaker
+    density: 1
+    compute: 1
+    progression: linear
+    time: 60
+    file: dense_l2.yaml
+  - name: shaker-l3-north-south
+    enabled: false
+    type: shaker
+    placement: double_room
+    density: 1
+    compute: 1
+    progression: null
+    time: 60
+    file: dense_l3_north_south.yaml
+  - name: shaker-l3-east-west
+    enabled: false
+    type: shaker
+    density: 1
+    compute: 1
+    time: 60
+    file: dense_l3_east_west.yaml
+# Rally
+  - name: authenticate
+    enabled: false
+    type: rally
+    rally_deployment: overcloud
+    concurrency:
+      - 8
+    times: 100
+    scenarios:
+      - name: authentic-keystone
+        enabled: true
+        file: rally/authenticate/keystone-cc.yml
+      - name: authentic-neutron
+        enabled: true
+        file: rally/authenticate/validate_neutron-cc.yml
+      - name: authentic-nova
+        enabled: true
+        file: rally/authenticate/validate_nova-cc.yml
+
+  - name: cinder
+    enabled: false
+    type: rally
+    rally_deployment: overcloud
+    concurrency:
+      - 2
+    times: 10
+    scenarios:
+      - name: create-attach-volume-cirros
+        enabled: true
+        image_name: cirros
+        flavor_name: m1.tiny
+        file: rally/cinder/cinder-create-and-attach-volume-cc.yml
+
+      - name: create-and-list-snapshots
+        enabled: true
+        size: 1
+        file: rally/cinder/cinder-create-and-list-snapshots.yml
+
+      - name: create-and-list-volume
+        enabled: true
+        size: 1
+        file: rally/cinder/cinder-create-and-list-volume.yml
+
+      - name: create-and-update-volume
+        enabled: true
+        size: 1
+        file: rally/cinder/cinder-create-and-update-volume.yml
+
+  - name: keystonebasic
+    enabled: false
+    type: rally
+    rally_deployment: overcloud
+    concurrency:
+      - 8
+    times: 100
+    scenarios:
+      - name: create-and-list-tenants
+        enabled: false
+        file: rally/keystonebasic/create_and_list_tenants-cc.yml
+      - name: create-and-list-users
+        enabled: true
+        file: rally/keystonebasic/create_and_list_users-cc.yml
+
+  - name: neutron
+    enabled: false
+    type: rally
+    rally_deployment: overcloud
+    concurrency:
+      - 2
+    times: 10
+    scenarios:
+      - name: create-list-network
+        enabled: true
+        file: rally/neutron/neutron-create-list-network-cc.yml
+      - name: create-update-network
+        enabled: false
+        file: rally/neutron/neutron-create-update-network-cc.yml
+        network_update_args:
+          admin_state_up: False
+          name: "_updated"
+      - name: create-delete-network
+        enabled: false
+        file: rally/neutron/neutron-create-delete-network-cc.yml
+      - name: create-list-port
+        enabled: true
+        file: rally/neutron/neutron-create-list-port-cc.yml
+      - name: create-update-port
+        enabled: false
+        file: rally/neutron/neutron-create-update-port-cc.yml
+        network_create_args: {}
+        port_create_args: {}
+        ports_per_network: 5
+        port_update_args:
+          admin_state_up: False
+          device_id: "dummy_id"
+          device_owner: "dummy_owner"
+          name: "_port_updated"
+      - name: create-delete-port
+        enabled: false
+        file: rally/neutron/neutron-create-delete-port-cc.yml
+        network_create_args: {}
+        port_create_args: {}
+        ports_per_network: 5
+      - name: create-list-router
+        enabled: true
+        file: rally/neutron/neutron-create-list-router-cc.yml
+      - name: create-update-router
+        enabled: false
+        file: rally/neutron/neutron-create-update-router-cc.yml
+        network_create_args: {}
+        subnet_create_args: {}
+        subnet_cidr_start: "1.1.0.0/30"
+        subnets_per_network: 2
+        router_create_args: {}
+        router_update_args:
+          admin_state_up: False
+          name: "_router_updated"
+      - name: create-delete-router
+        enabled: false
+        file: rally/neutron/neutron-create-delete-router-cc.yml
+        network_create_args: {}
+        subnet_create_args: {}
+        subnet_cidr_start: "1.1.0.0/30"
+        subnets_per_network: 2
+        router_create_args: {}
+      - name: create-list-security-group
+        enabled: true
+        file: rally/neutron/neutron-create-list-security-group-cc.yml
+      - name: create-list-subnet
+        enabled: true
+        file: rally/neutron/neutron-create-list-subnet-cc.yml
+      - name: create-update-subnets
+        enabled: false
+        file: rally/neutron/neutron-create-update-subnet-cc.yml
+        network_create_args: {}
+        subnet_create_args: {}
+        subnet_cidr_start: "1.4.0.0/16"
+        subnets_per_network: 2
+        subnet_update_args:
+          enable_dhcp: true
+          name: "_subnet_updated"
+      - name: create-delete-subnets
+        enabled: false
+        file: rally/neutron/neutron-create-delete-subnet-cc.yml
+        network_create_args: {}
+        subnet_create_args: {}
+        subnet_cidr_start: "1.1.0.0/30"
+        subnets_per_network: 2
+      - name: create-list-trunks
+        enabled: true
+        subport_count: 10
+        file: rally/neutron/neutron-create-list-trunks.yml
+      - name: boot-server-with-subports
+        enabled: true
+        flavor_name: m1.small
+        image_name: centos7
+        subport_count: 10
+        file: rally/neutron/neutron-boot-server-with-subports.yml
+      - name: boot-server-and-add-subports
+        enabled: true
+        flavor_name: m1.small
+        image_name: centos7
+        subport_count: 10
+        file: rally/neutron/neutron-boot-server-and-add-subports.yml
+      - name: boot-server-and-batch-add-subports
+        enabled: true
+        flavor_name: m1.small
+        image_name: centos7
+        subports_per_batch: 10
+        batches: 5
+        file: rally/neutron/neutron-boot-server-and-batch-add-subports.yml
+
+  - name: nova
+    enabled: false
+    type: rally
+    rally_deployment: overcloud
+    concurrency:
+      - 2
+    times: 10
+    scenarios:
+      - name: boot-snapshot-delete-cirros
+        enabled: true
+        file: rally/nova/nova-boot-snapshot-cc.yml
+        image_name: cirros
+        flavor_name: m1.xtiny
+      - name: boot-list-cirros
+        enabled: true
+        image_name: cirros
+        file: rally/nova/nova-boot-list-cc.yml
+        flavor_name: m1.xtiny
+      - name: boot-show-cirros
+        enabled: true
+        image_name: cirros
+        file: rally/nova/nova-boot-show-cc.yml
+        flavor_name: m1.xtiny
+      - name: boot-bounce-delete-cirros
+        enabled: true
+        image_name: cirros
+        file: rally/nova/nova-boot-bounce-delete-cc.yml
+        flavor_name: m1.xtiny
+      - name: boot-lock-unlock-cirros
+        enabled: true
+        image_name: cirros
+        file: rally/nova/nova-lock-unlock-cc.yml
+        flavor_name: m1.xtiny
+      - name: boot_server_from_volume_and_resize
+        enabled: true
+        image_name: cirros
+        file: rally/nova/nova-boot-from-volume-and-resize.yml
+        initial_flavor_name: m1.tiny
+        final_flavor_name: m1.small
+
+  - name: glance
+    enabled: false
+    type: rally
+    rally_deployment: overcloud
+    concurrency:
+      - 2
+    times: 10
+    scenarios:
+      - name: create-and-delete-image
+        enabled: true
+        image_location: /home/stack/cirros.qcow2
+        container_format: bare
+        disk_format: qcow2
+        file: rally/glance/create-and-delete-image-cc.yml
+
+  - name: octavia
+    enabled: false
+    type: rally
+    rally_deployment: overcloud
+    concurrency:
+      - 2
+    times: 10
+    scenarios:
+      - name: create-and-list-loadbalancers
+        enabled: true
+        sla_max_failure: 0
+        file: rally/octavia/octavia-create-list-loadbalancers.yml
+      - name: create-and-stats-show-loadbalancers
+        enabled: true
+        file: rally/octavia/octavia-create-stats-show-loadbalancers.yml
+        sla_max_failure: 0
+      - name: create-and-show-loadbalancers
+        enabled: true
+        file: rally/octavia/octavia-create-show-loadbalancers.yml
+        sla_max_failure: 0
+      - name: create-and-update-loadbalancers
+        enabled: true
+        file: rally/octavia/octavia-create-update-loadbalancers.yml
+        sla_max_failure: 0
+      - name: create-and-delete-loadbalancers
+        enabled: true
+        file: rally/octavia/octavia-create-delete-loadbalancers.yml
+        sla_max_failure: 0
+      - name: create-and-list-pools
+        enabled: true
+        sla_max_failure: 0
+        file: rally/octavia/octavia-create-list-pools.yml
+      - name: create-and-show-pools
+        enabled: true
+        file: rally/octavia/octavia-create-show-pools.yml
+        sla_max_failure: 0
+      - name: create-and-update-pools
+        enabled: true
+        file: rally/octavia/octavia-create-update-pools.yml
+        sla_max_failure: 0
+      - name: create-and-delete-pools
+        enabled: true
+        file: rally/octavia/octavia-create-delete-pools.yml
+        sla_max_failure: 0
+
+  - name: simple-plugins
+    enabled: false
+    type: rally
+    rally_deployment: overcloud
+    concurrency:
+      - 8
+    times: 10
+    scenarios:
+      - name: netcreate-boot
+        enabled: true
+        enable_dhcp: true
+        image_name: cirros
+        flavor_name: m1.tiny
+        file: rally/rally-plugins/netcreate-boot/netcreate_nova_boot.yml
+      - name: netcreate-boot-one-network
+        enabled: true
+        enable_dhcp: true
+        num_vms: 4
+        image_name: cirros
+        flavor_name: m1.tiny
+        file: rally/rally-plugins/netcreate-boot/netcreate_nova_boot_vms_on_single_network.yml
+      - name: netcreate-boot-ping
+        enabled: true
+        num_vms: 4
+        image_name: cirros
+        flavor_name: m1.xtiny
+        ext_net_id:
+        file: rally/rally-plugins/netcreate-boot/netcreate_nova_boot_fip_ping.yml
+      - name: netcreate-boot-ping-sec-group
+        enabled: true
+        num_vms: 4
+        num_sg: 2
+        num_sgr: 3
+        image_name: cirros
+        flavor_name: m1.xtiny
+        ext_net_id:
+        file: rally/rally-plugins/netcreate-boot/netcreate_nova_boot_fip_ping_sec_groups.yml
+      - name: netcreate-boot-test-metadata
+        enabled: true
+        image_name: cirros
+        flavor_name: m1.xtiny
+        username: cirros
+        ssh_timeout: 120
+        external_network:
+        file: rally/rally-plugins/netcreate-boot/netcreate_nova_boot_test_metadata.yml
+      - name: router-subnet-create-delete
+        enabled: true
+        num_networks:  5
+        file: rally/rally-plugins/neutron/router_subnet_create_delete.yml
+      - name: glance-create-boot-delete
+        enabled: true
+        image_location: /home/stack/cirros.qcow2
+        flavor_name: m1.xtiny
+        file: rally/rally-plugins/glance/glance_create_boot_delete.yml
+      - name: neutron-securitygroup-port
+        enabled: true
+        file: rally/rally-plugins/neutron/securitygroup_port.yml
+      - name: create-vm-with-volume-list
+        enabled: true
+        image_name: centos7
+        flavor_name: m1.small
+        file: rally/rally-plugins/cinder/boot_vm_attach_volume_list.yml
+      - name: octavia-create-loadbalancer-resources
+        enabled: true
+        image_name: cirros
+        flavor_name: m1.xtiny
+        user: cirros
+        ext_net_id:
+        protocol: HTTP
+        lb_algorithm: ROUND_ROBIN
+        protocol_port: 80
+        num_clients: 1
+        file: rally/rally-plugins/octavia/octavia-create-loadabalancer-resources.yml
+      - name: octavia-fully-populated-loadbalancer
+        enabled: true
+        image_name: custom-cirros
+        flavor_name: m1.tiny-cirros
+        vip_subnet_id:
+        num_lb: 1
+        jump_host_ip:
+        user: "cirros"
+        user_data_file:
+        file: rally/rally-plugins/octavia/octavia-fully-populated-loadbalancer.yml
+      - name: octavia-create-loadbalancer-listeners-pools-members
+        enabled: true
+        image_name: custom-cirros
+        flavor_name: m1.tiny-cirros
+        protocol: HTTP
+        lb_algorithm: ROUND_ROBIN
+        protocol_port: 80
+        vip_subnet_id:
+        num_pools: 2
+        num_clients: 2
+        user: "cirros"
+        user_data_file: /home/stack/user_data.file
+        jump_host_ip:
+        file: rally/rally-plugins/octavia/octavia-create-loadabalancer-listeners-pools-members.yml
+      - name: trunk-network-simulation
+        enabled: false
+        num_subports: 1
+        ext_net_id:
+        file: ./rally/rally-plugins/netcreate-boot/trunk_network_simulation.yml
+      # provider_phys_net should be provider physical network name.
+      # Please don't create any vlan interfaces on the physical interface used with this provider type.
+      # So use a dedicated interface with provider bridge mappings.
+      # Provide the MAC address of this interface you find in the undercloud.
+      # Workload will prepare a scapy packet using the interface name and mac.
+      - name: provider-netcreate-boot-ping
+        enabled: true
+        enable_dhcp: true
+        num_vms: 1
+        image_name: custom-cirros
+        flavor_name: m1.tiny-cirros
+        provider_phys_net: "provider"
+        iface_name: "ens7f0"
+        iface_mac: "3c:fd:fe:c1:8c:70"
+        file: rally/rally-plugins/netcreate-boot/provider_netcreate_nova_boot_ping.yml
+
+  - name: plugin-workloads
+    enabled: false
+    type: rally
+    rally_deployment: overcloud
+    concurrency:
+      - 1
+    times: 1
+    scenarios:
+      - name: linpack
+        enabled: true
+        image_name: browbeat-linpack
+        flavor_name: m1.small
+        external_network:
+        net_id:
+        file: rally/rally-plugins/workloads/linpack.yml
+
+      - name: sysbench
+        enabled: true
+        user: root
+        image_name: browbeat-sysbench
+        flavor_name: m1.small
+        external_network:
+        net_id:
+        # test_name: Type of Sysbench Benchmark to be run. Example: cpu
+        test_name: cpu
+        cpu_max_prime:
+        file: rally/rally-plugins/workloads/sysbench.yml
+
+      - name: browbeat-pbench-uperf
+        enabled: true
+        user: root
+        image_name: browbeat-uperf
+        flavor_name: m1.small
+        # hypervisor_server: "nova:overcloud-compute-1.localdomain"
+        # hypervisor_client: "nova:overcloud-compute-0.localdomain"
+        external_network:
+        net_id:
+        protocols: tcp,udp
+        instances: 1
+        num_pairs: 1
+        samples: 1
+        test_types: stream,rr
+        message_sizes: 64,1024,16384
+        test_name: "browbeat-pbench-uperf"
+        send_results: true
+        cloudname:
+        elastic_host:
+        elastic_port: 9200
+        file: rally/rally-plugins/workloads/pbench-uperf.yml
+
+      - name: browbeat-abench
+        enabled: true
+        user: centos
+        image_name: browbeat-abench
+        flavor_name: m1.small
+        external_network: public
+        net_id:
+        ext_net_id:
+        subnet_id:
+        protocol: HTTP
+        lb_algorithm: ROUND_ROBIN
+        protocol_port: 80
+        num_clients: 2
+        total_requests: 1000
+        concurrency_level: 10
+        send_results: true
+        file: rally/rally-plugins/workloads/abench.yml
+
+  - name: dynamic-workloads
+    enabled: true
+    type: rally
+    rally_deployment: overcloud
+    concurrency:
+      - 3
+    times: 20
+    scenarios:
+      - name: dynamic-workload
+        enabled: true
+        # smallest image name and smallest flavor name are used for 
+        # vm dynamic scenarios and for jumphost in trunk dynamic scenario.
+        smallest_image_name: cirros
+        smallest_flavor_name: m1.small
+        ext_net_id:
+        num_create_vms: 10
+        num_delete_vms: 5
+        num_vms_to_create_with_fip: 10
+        num_vms_to_migrate: 5
+        num_stop_start_vms: 5
+        octavia_image_name: custom-cirros
+        octavia_flavor_name: m1.tiny-cirros
+        num_lbs: 4
+        num_pools: 2
+        num_clients: 2
+        delete_num_lbs: 2
+        delete_num_members: 1
+        user: cirros
+        #If num_pools > 2 you need to make the change in
+        #octavia-userdata.file ( NUM_POOLS = <num_pools>)
+        user_data_file: /home/stack/octavia-userdata.file
+        num_initial_subports: 1
+        num_trunk_vms: 1
+        num_add_subports_trunks: 1
+        num_add_subports: 1
+        num_delete_subports_trunks: 1
+        num_delete_subports: 1
+        provider_phys_net: "provider1"
+        iface_name: "ens7f0"
+        iface_mac: "3c:fd:fe:c1:73:40"
+        num_vms_provider_net: 2
+        shift_on_stack_job_iterations: 100
+        shift_on_stack_qps: 20
+        shift_on_stack_burst: 20
+        # shift_on_stack_workload can be poddensity, clusterdensity, maxnamespaces,
+        # or maxservices
+        shift_on_stack_workload: poddensity
+        shift_on_stack_kubeconfig_paths:
+          - /home/stack/.kube/config
+        # workloads can be 'all', a single workload(Eg. : create_delete_servers),
+        # or a comma separated string(Eg. : create_delete_servers,migrate_servers).
+        # Currently supported workloads : create_delete_servers, migrate_servers
+        # swap_floating_ips_between_servers, stop_start_servers, create_loadbalancers,
+        # delete_loadbalancers, delete_members_random_lb, pod_fip_simulation,
+        # add_subports_to_random_trunks, delete_subports_from_random_trunks,
+        # swap_floating_ips_between_random_subports, provider_netcreate_nova_boot_ping,
+        # provider_net_nova_boot_ping, provider_net_nova_delete, shift_on_stack
+        # Note: Octavia, Provider and Shift-on-Stack scenarios are not included in 'all'
+        # by default, and have to be included separately.
+        workloads: create_delete_servers,swap_floating_ips_between_servers,stop_start_servers,pod_fip_simulation
+        file: rally/rally-plugins/dynamic-workloads/dynamic_workload.yml
