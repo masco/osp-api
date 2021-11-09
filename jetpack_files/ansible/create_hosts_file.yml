@@ -4,8 +4,6 @@
     file:
       path: "../../../jetpack/hosts"
       state: touch
-      mode: 0644
-      owner: jenkins
       
   - name: Fill hosts file with content
     copy:
