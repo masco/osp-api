@@ -1,0 +1,15 @@
+- hosts: localhost
+  tasks:
+  - name: Create hosts file
+    file:
+      path: "../../jetpack/hosts"
+      state: touch
+      mode: 0644
+      owner: jenkins
+      
+  - name: Fill hosts file with content
+    copy:
+      dest: "../../jetpack/hosts"
+      content: |
+        [undercloud]
+        {{ lookup('env', 'UNDERCLOUD_HOST')|default('', true) }} ansible_user=stack ansible_ssh_pass=stack
