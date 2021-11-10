@@ -1,0 +1,24 @@
+- hosts: undercloud
+  tasks:
+  - name: Delete overcloud deployment, if it exists
+    shell: |
+      source ~/stackrc && openstack overcloud delete overcloud -y
+    ignore_errors: yes
+    
+  - name: Deploy overcloud
+    shell: |
+      source ~/stackrc && ./overcloud_deploy.sh
+      
+- hosts: localhost
+  tasks:
+  - name: Run overcloud post deployment tasks
+    shell: |
+      ansible-playbook -i hosts -vvv main.yml -t post
+    args:
+      chdir: "../../../jetpack"
+    
+  - name: Install browbeat
+    shell: |
+      ansible-playbook -i hosts -vvv main.yml -t browbeat
+    args:
+      chdir: "../../../jetpack"
