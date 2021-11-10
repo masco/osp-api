@@ -7,4 +7,4 @@
     
   - name: Deploy overcloud
     shell: |
-      source ~/stackrc && ./overcloud_deploy.sh
+      source ~/stackrc && ./overcloud_deploy.sh > ~/overcloud_install.log 2>&1
