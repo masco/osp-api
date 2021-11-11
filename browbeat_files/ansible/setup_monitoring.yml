@@ -1,0 +1,21 @@
+- hosts: undercloud
+  tasks:
+    - name: clone osp-api
+      git:
+        repo: "https://github.com/masco/osp-api.git"
+        dest: "~/osp-api"
+        force: yes
+          
+    - name: copy all.yml from osp-api to browbeat directory
+      shell: |
+        cp ~/osp-api/browbeat_files/all.yml ~/browbeat/ansible/install/group_vars/all.yml
+
+    - name: add grafana api key to browbeat all.yml
+      shell: |
+        sed -i 's/grafana_apikey_value/{{ lookup('env','GRAFANA_API_KEY') }}/' ~/browbeat/ansible/install/group_vars/all.yml
+        
+    - name: run collectd.yml playbook to set up collectd
+      shell: |
+        ansible-playbook -vv -i hosts.yml install/collectd.yml > collectd_install.out 2>&1
+      args:
+        chdir: "~/browbeat/ansible"
