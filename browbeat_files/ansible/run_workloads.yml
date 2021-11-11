@@ -1,0 +1,47 @@
+- hosts: undercloud
+  tasks:
+    - name: clone osp-api
+      git:
+        repo: "https://github.com/masco/osp-api.git"
+        dest: "~/osp-api"
+        force: yes
+      tags:
+        - api_workloads
+        - netcreate_boot_workloads
+        - dynamic_workloads
+          
+    - name: copy api_testing_config.yml to browbeat-config.yaml
+      shell: |
+        cp ~/osp-api/browbeat_files/api_testing_config.yml ~/browbeat/browbeat-config.yaml
+      tags:
+        - api_workloads
+      
+    - name: copy netcreate_boot_config.yml to browbeat-config.yaml
+      shell: |
+        cp ~/osp-api/browbeat_files/netcreate_boot_config.yml ~/browbeat/browbeat-config.yaml
+      tags:
+        - netcreate_boot_workloads
+      
+    - name: copy dynamic_workloads_config.yml to browbeat-config.yaml
+      shell: |
+        cp ~/osp-api/browbeat_files/dynamic_workloads_config.yml ~/browbeat/browbeat-config.yaml
+      tags:
+        - dynamic_workloads
+        
+    - name: fill external network id in browbeat-config.yaml
+      shell: |
+        ansible-playbook -vvv osp-api/browbeat_files/ansible/fill_ext_net_id.yml
+      tags:
+        - api_workloads
+        - netcreate_boot_workloads
+        - dynamic_workloads
+        
+    - name: run workloads
+      shell: |
+        source ~/stackrc && source .browbeat-venv/bin/activate && ./browbeat.py rally
+      args:
+        chdir: "~/browbeat"
+      tags:
+        - api_workloads
+        - netcreate_boot_workloads
+        - dynamic_workloads
