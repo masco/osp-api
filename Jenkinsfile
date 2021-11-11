@@ -12,7 +12,24 @@ pipeline() {
             sh 'rm -rf jetpack'
             sh 'git clone https://github.com/redhat-performance/jetpack.git'
             sh 'cd jetpack && git pull origin pull/412/head'
+        }
+    }
+    
+    stage('copy alias group vars file from osp-api to jetpack') {
+        when {
+            expression { ALIAS_LAB == 'true' }
+        }
+        steps {
             sh 'cp osp-api/jetpack_files/alias_group_vars.yml jetpack/group_vars/all.yml'
+        }
+    }
+    
+    stage('copy scale group vars file from osp-api to jetpack') {
+        when {
+            expression { SCALE_LAB == 'true' }
+        }
+        steps {
+            sh 'cp osp-api/jetpack_files/scale_group_vars.yml jetpack/group_vars/all.yml'
         }
     }
     
