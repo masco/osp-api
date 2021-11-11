@@ -1,18 +1,10 @@
-def remote = [:]
-remote.name = params.UNDERCLOUD_HOST
-remote.host = params.UNDERCLOUD_HOST
-remote.user = 'stack'
-remote.password = <stack_password>
-remote.allowAnyHosts = true
-remote.keepAliveSec = 21600
-
 pipeline() {
   agent any
 
   stages {
     stage('setup jetpack') {
         when {
-            expression { TRIGGER_DEPLOYMENT == 'true' || TRIGGER_UNDERCLOUD_DEPLOYMENT == 'true' }
+            expression { TRIGGER_UNDERCLOUD_DEPLOYMENT == 'true' }
         }
         steps {
             sh 'rm -rf osp-api'
@@ -20,16 +12,13 @@ pipeline() {
             sh 'rm -rf jetpack'
             sh 'git clone https://github.com/redhat-performance/jetpack.git'
             sh 'cd jetpack && git pull origin pull/412/head'
-            sh 'cp osp-api/jetpack_group_vars.yml jetpack/group_vars/all.yml'
+            sh 'cp osp-api/jetpack_files/alias_group_vars.yml jetpack/group_vars/all.yml'
         }
     }
-
-    stage('deploy osp using jetpack') {
-        when {
-            expression { TRIGGER_DEPLOYMENT == 'true' }
-        }
+    
+    stage('create jetpack hosts file for undercloud') {
         steps {
-            sh 'cd jetpack && ansible-playbook -vvv main.yml'
+            sh "cd osp-api/jetpack_files/ansible && ansible-playbook -vvv create_hosts_file.yml"
         }
     }
     
@@ -87,56 +76,54 @@ pipeline() {
         }
     }
     
-    stage('deploy overcloud using jetpack') {
+    stage('deploy overcloud') {
         when {
             expression { TRIGGER_OVERCLOUD_DEPLOYMENT == 'true' }
         }
         steps {
             script {
                 try {
-                    sh "cd jetpack && ansible-playbook -vvv main.yml -t overcloud"
+                    sh "cd osp-api/jetpack_files/ansible && ansible-playbook -i ../../../jetpack/hosts -vvv deploy_overcloud.yml"
                 } catch(err) {
-                    echo "Overcloud deployment failed on first try. Retrying upto 3 times."
+                    echo "Overcloud deployment failed on first try. Retrying up to 3 times."
                     retry(3) {
-                        sh "cd jetpack && ansible-playbook -vvv main.yml -t overcloud"
+                        sh "cd osp-api/jetpack_files/ansible && ansible-playbook -i ../../../jetpack/hosts -vvv deploy_overcloud.yml"
                     }
                 }
             }
         }
     }
     
-    stage('delete existing overcloud deployment') {
+    stage('run overcloud post deployment tasks') {
         when {
-            expression { TRIGGER_OVERCLOUD_REDEPLOYMENT == 'true' }
+            expression { TRIGGER_OVERCLOUD_DEPLOYMENT == 'true' }
         }
         steps {
             script {
                 try {
-                    sshCommand remote: remote, command: "source ~/stackrc && openstack overcloud delete overcloud -y"
+                    sh "cd jetpack && ansible-playbook -i hosts -vvv main.yml -t post"
                 } catch(err) {
-                    echo err.getMessage()
+                    echo "Overcloud post deployment tasks failed on first try. Retrying upto 3 times."
+                    retry(3) {
+                        sh "cd jetpack && ansible-playbook -i hosts -vvv main.yml -t post"
+                    }
                 }
             }
         }
     }
     
-    stage('redeploy overcloud') {
+    stage('install browbeat') {
         when {
-            expression { TRIGGER_OVERCLOUD_REDEPLOYMENT == 'true' }
+            expression { TRIGGER_OVERCLOUD_DEPLOYMENT == 'true' }
         }
         steps {
             script {
                 try {
-                    sshCommand remote: remote, command: "source ~/stackrc && ./overcloud_deploy.sh"
+                    sh "cd jetpack && ansible-playbook -i hosts -vvv main.yml -t browbeat"
                 } catch(err) {
-                    echo "Overcloud redeployment failed on first try. Retrying up to 3 times."
+                    echo "Browbeat installation tasks failed on first try. Retrying upto 3 times."
                     retry(3) {
-                        try {
-                            sshCommand remote: remote, command: "source ~/stackrc && openstack overcloud delete overcloud -y"
-                        } catch(error) {
-                            echo error.getMessage()
-                        }
-                        sshCommand remote: remote, command: "source ~/stackrc && ./overcloud_deploy.sh"
+                        sh "cd jetpack && ansible-playbook -i hosts -vvv main.yml -t browbeat"
                     }
                 }
             }
@@ -149,11 +136,7 @@ pipeline() {
             expression { SETUP_MONITORING == 'true' }
         }
         steps {
-            sshCommand remote: remote, command: "rm -rf osp-api"
-            sshCommand remote: remote, command: "git clone https://github.com/masco/osp-api.git"
-            sshCommand remote: remote, command: "cp osp-api/browbeat_files/all.yml browbeat/ansible/install/group_vars/all.yml"
-            sshCommand remote: remote, command: "sed -i 's/grafana_apikey_value/${params.GRAFANA_API_KEY}/' browbeat/ansible/install/group_vars/all.yml"
-            sshCommand remote: remote, command: "cd browbeat/ansible && (nohup ansible-playbook -vv -i hosts.yml install/collectd.yml > collectd_install.out 2>&1 &)"
+            sh "cd osp-api/browbeat_files/ansible && ansible-playbook -i ../../../jetpack/hosts -vvv setup_monitoring.yml"
         }
     }
     
@@ -162,10 +145,7 @@ pipeline() {
             expression { RUN_API_WORKLOADS == 'true' }
         }
         steps {
-            sshCommand remote: remote, command: "rm -rf osp-api"
-            sshCommand remote: remote, command: "git clone https://github.com/masco/osp-api.git"
-            sshCommand remote: remote, command: "cp osp-api/browbeat_files/api_testing_config.yaml browbeat/browbeat-config.yaml"
-            sshCommand remote: remote, command: "cd browbeat && source ~/stackrc && source .browbeat-venv/bin/activate && (nohup ./browbeat.py rally > api_workloads.out 2>&1 &) && (tail -f 202*.log | grep -q output.json)"
+            sh "cd osp-api/browbeat_files/ansible && ansible-playbook -i ../../../jetpack/hosts -t api_workloads -vvv run_workloads.yml"
         }
     }
     
@@ -174,11 +154,7 @@ pipeline() {
             expression { RUN_NETCREATE_BOOT_WORKLOADS == 'true' }
         }
         steps {
-            sshCommand remote: remote, command: "rm -rf osp-api"
-            sshCommand remote: remote, command: "git clone https://github.com/masco/osp-api.git"
-            sshCommand remote: remote, command: "cp osp-api/browbeat_files/netcreate_boot_config.yaml browbeat/browbeat-config.yaml"
-            sshCommand remote: remote, command: "ansible-playbook -vvv osp-api/browbeat_files/ansible/fill_ext_net_id.yml"
-            sshCommand remote: remote, command: "cd browbeat && source ~/stackrc && source .browbeat-venv/bin/activate && ./browbeat.py rally"
+            sh "cd osp-api/browbeat_files/ansible && ansible-playbook -i ../../../jetpack/hosts -t netcreate_boot_workloads -vvv run_workloads.yml"
         }
     }
     
@@ -187,11 +163,7 @@ pipeline() {
             expression { RUN_DYNAMIC_WORKLOADS == 'true' }
         }
         steps {
-            sshCommand remote: remote, command: "rm -rf osp-api"
-            sshCommand remote: remote, command: "git clone https://github.com/masco/osp-api.git"
-            sshCommand remote: remote, command: "cp osp-api/browbeat_files/dynamic_workloads_config.yaml browbeat/browbeat-config.yaml"
-            sshCommand remote: remote, command: "ansible-playbook -vvv osp-api/browbeat_files/ansible/fill_ext_net_id.yml"
-            sshCommand remote: remote, command: "cd browbeat && source ~/stackrc && source .browbeat-venv/bin/activate && ./browbeat.py rally"
+            sh "cd osp-api/browbeat_files/ansible && ansible-playbook -i ../../../jetpack/hosts -t dynamic_workloads -vvv run_workloads.yml"
         }
     }
   }
