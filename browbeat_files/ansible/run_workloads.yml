@@ -12,19 +12,19 @@
           
     - name: copy api_testing_config.yml to browbeat-config.yaml
       shell: |
-        cp ~/osp-api/browbeat_files/api_testing_config.yml ~/browbeat/browbeat-config.yaml
+        cp ~/osp-api/browbeat_files/api_testing_config.yaml ~/browbeat/browbeat-config.yaml
       tags:
         - api_workloads
       
     - name: copy netcreate_boot_config.yml to browbeat-config.yaml
       shell: |
-        cp ~/osp-api/browbeat_files/netcreate_boot_config.yml ~/browbeat/browbeat-config.yaml
+        cp ~/osp-api/browbeat_files/netcreate_boot_config.yaml ~/browbeat/browbeat-config.yaml
       tags:
         - netcreate_boot_workloads
       
     - name: copy dynamic_workloads_config.yml to browbeat-config.yaml
       shell: |
-        cp ~/osp-api/browbeat_files/dynamic_workloads_config.yml ~/browbeat/browbeat-config.yaml
+        cp ~/osp-api/browbeat_files/dynamic_workloads_config.yaml ~/browbeat/browbeat-config.yaml
       tags:
         - dynamic_workloads
         
