@@ -2,6 +2,6 @@
   tasks:
     - name: stop collectd containers
       shell: |
-        ansible-playbook -i hosts.yml -vvv stop-collectd.yml
+        ansible-playbook -i ~/browbeat/ansible/hosts.yml -vvv stop-collectd.yml
       args:
         chdir: "~/browbeat/ansible/install"
