@@ -153,7 +153,7 @@ pipeline() {
             expression { SETUP_MONITORING == 'true' }
         }
         steps {
-            sh "cd osp-api/browbeat_files/ansible && ansible-playbook -i ../../../jetpack/hosts -vvv setup_monitoring.yml"
+            sh "export ANSIBLE_HOST_KEY_CHECKING=False && cd osp-api/browbeat_files/ansible && ansible-playbook -i ../../../jetpack/hosts -vvv setup_monitoring.yml"
         }
     }
     
@@ -181,6 +181,15 @@ pipeline() {
         }
         steps {
             sh "cd osp-api/browbeat_files/ansible && ansible-playbook -i ../../../jetpack/hosts -t dynamic_workloads -vvv run_workloads.yml"
+        }
+    }
+    
+    stage('stop collectd containers') {
+        when {
+            expression { STOP_COLLECTD == 'true' }
+        }
+        steps {
+            sh "export ANSIBLE_HOST_KEY_CHECKING=False && cd osp-api/browbeat_files/ansible && ansible-playbook -i ../../../jetpack/hosts -vvv stop_collectd.yml"
         }
     }
   }
