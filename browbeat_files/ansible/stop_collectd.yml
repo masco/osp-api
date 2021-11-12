@@ -1,0 +1,7 @@
+- hosts: undercloud
+  tasks:
+    - name: stop collectd containers
+      shell: |
+        ansible-playbook -vvv stop-collectd.yml
+      args:
+        chdir: "~/browbeat/ansible/install"
