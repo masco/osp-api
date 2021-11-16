@@ -562,7 +562,7 @@ workloads:
         num_vms_to_create_with_fip: 10
         num_vms_to_migrate: 5
         num_stop_start_vms: 5
-        octavia_image_name: custom-cirros
+        octavia_image_name: cirros
         octavia_flavor_name: m1.tiny-cirros
         num_lbs: 4
         num_pools: 2
