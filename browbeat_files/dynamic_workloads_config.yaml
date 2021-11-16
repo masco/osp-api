@@ -574,10 +574,10 @@ workloads:
         #octavia-userdata.file ( NUM_POOLS = <num_pools>)
         user_data_file: /home/stack/octavia-userdata.file
         num_initial_subports: 1
-        num_trunk_vms: 1
-        num_add_subports_trunks: 1
+        num_trunk_vms: 3
+        num_add_subports_trunks: 2
         num_add_subports: 1
-        num_delete_subports_trunks: 1
+        num_delete_subports_trunks: 2
         num_delete_subports: 1
         provider_phys_net: "provider1"
         iface_name: "ens7f0"
@@ -601,5 +601,5 @@ workloads:
         # provider_net_nova_boot_ping, provider_net_nova_delete, shift_on_stack
         # Note: Octavia, Provider and Shift-on-Stack scenarios are not included in 'all'
         # by default, and have to be included separately.
-        workloads: create_delete_servers,swap_floating_ips_between_servers,stop_start_servers,pod_fip_simulation
+        workloads: all
         file: rally/rally-plugins/dynamic-workloads/dynamic_workload.yml
