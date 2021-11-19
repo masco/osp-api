@@ -555,7 +555,7 @@ workloads:
         # smallest image name and smallest flavor name are used for 
         # vm dynamic scenarios and for jumphost in trunk dynamic scenario.
         smallest_image_name: cirros
-        smallest_flavor_name: m1.small
+        smallest_flavor_name: m1.xtiny
         ext_net_id:
         num_create_vms: 2
         num_delete_vms: 1
