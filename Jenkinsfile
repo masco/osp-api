@@ -11,7 +11,6 @@ pipeline() {
             sh 'git clone https://github.com/masco/osp-api.git'
             sh 'rm -rf jetpack'
             sh 'git clone https://github.com/redhat-performance/jetpack.git'
-            sh 'cd jetpack && git pull origin pull/412/head'
         }
     }
     
@@ -93,36 +92,18 @@ pipeline() {
         }
     }
     
-    stage('deploy overcloud') {
+    stage('deploy overcloud using jetpack') {
         when {
             expression { TRIGGER_OVERCLOUD_DEPLOYMENT == 'true' }
         }
         steps {
             script {
                 try {
-                    sh "cd osp-api/jetpack_files/ansible && ansible-playbook -i ../../../jetpack/hosts -vvv deploy_overcloud.yml"
-                } catch(err) {
-                    echo "Overcloud deployment failed on first try. Retrying up to 3 times."
-                    retry(3) {
-                        sh "cd osp-api/jetpack_files/ansible && ansible-playbook -i ../../../jetpack/hosts -vvv deploy_overcloud.yml"
-                    }
-                }
-            }
-        }
-    }
-    
-    stage('run overcloud post deployment tasks') {
-        when {
-            expression { TRIGGER_OVERCLOUD_DEPLOYMENT == 'true' }
-        }
-        steps {
-            script {
-                try {
-                    sh "cd jetpack && ansible-playbook -i hosts -vvv main.yml -t post"
+                    sh "cd jetpack && ansible-playbook -vvv main.yml -t overcloud"
                 } catch(err) {
                     echo "Overcloud post deployment tasks failed on first try. Retrying upto 3 times."
                     retry(3) {
-                        sh "cd jetpack && ansible-playbook -i hosts -vvv main.yml -t post"
+                        sh "cd jetpack && ansible-playbook -vvv main.yml -t overcloud"
                     }
                 }
             }
@@ -147,13 +128,12 @@ pipeline() {
         }
     }
     
-    
     stage('setup monitoring(collectd, graphite, grafana) using browbeat') {
         when {
             expression { SETUP_MONITORING == 'true' }
         }
         steps {
-            sh "export ANSIBLE_HOST_KEY_CHECKING=False && cd osp-api/browbeat_files/ansible && ansible-playbook -i ../../../jetpack/hosts -vvv setup_monitoring.yml"
+            sh "cd osp-api/browbeat_files/ansible && ansible-playbook -i ../../../jetpack/hosts -vvv setup_monitoring.yml"
         }
     }
     
@@ -189,7 +169,7 @@ pipeline() {
             expression { STOP_COLLECTD == 'true' }
         }
         steps {
-            sh "export ANSIBLE_HOST_KEY_CHECKING=False && cd osp-api/browbeat_files/ansible && ansible-playbook -i ../../../jetpack/hosts -vvv stop_collectd.yml"
+            sh "cd osp-api/browbeat_files/ansible && ansible-playbook -i ../../../jetpack/hosts -vvv stop_collectd.yml"
         }
     }
   }
