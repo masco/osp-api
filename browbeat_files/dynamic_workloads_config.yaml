@@ -547,8 +547,8 @@ workloads:
     type: rally
     rally_deployment: overcloud
     concurrency:
-      - 3
-    times: 20
+      - 8
+    times: 100
     scenarios:
       - name: dynamic-workload
         enabled: true
@@ -557,11 +557,11 @@ workloads:
         smallest_image_name: cirros
         smallest_flavor_name: m1.small
         ext_net_id:
-        num_create_vms: 10
-        num_delete_vms: 5
-        num_vms_to_create_with_fip: 10
-        num_vms_to_migrate: 5
-        num_stop_start_vms: 5
+        num_create_vms: 2
+        num_delete_vms: 1
+        num_vms_to_create_with_fip: 2
+        num_vms_to_migrate: 1
+        num_stop_start_vms: 1
         octavia_image_name: cirros
         octavia_flavor_name: m1.tiny-cirros
         num_lbs: 4
@@ -574,10 +574,10 @@ workloads:
         #octavia-userdata.file ( NUM_POOLS = <num_pools>)
         user_data_file: /home/stack/octavia-userdata.file
         num_initial_subports: 1
-        num_trunk_vms: 3
-        num_add_subports_trunks: 2
+        num_trunk_vms: 2
+        num_add_subports_trunks: 1
         num_add_subports: 1
-        num_delete_subports_trunks: 2
+        num_delete_subports_trunks: 1
         num_delete_subports: 1
         provider_phys_net: "provider1"
         iface_name: "ens7f0"
