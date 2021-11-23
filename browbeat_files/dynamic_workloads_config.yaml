@@ -7,10 +7,20 @@ browbeat:
   # complete reruns after all workloads complete
   # rerun_type: complete
   rerun_type: iteration
+  # This option enables starting collectd before running workloads,
+  # and stopping collectd after running workloads. It should be enabled
+  # when it is required to store collectd data only when workloads
+  # are running. Please install collectd by running the command
+  # "cd ansible;ansible-playbook -i hosts.yml -vvv install/collectd.yml" before
+  # setting this option to true.
+  start_stop_collectd: true
 ansible:
   hosts: ansible/hosts.yml
   metadata_playbook: ansible/gather/stockpile.yml
   logging_playbook: ansible/common_logging/browbeat_logging.yml
+  start_collectd_playbook: ansible/install/start-collectd.yml
+  stop_collectd_playbook: ansible/install/stop-collectd.yml
+  check_collectd_config_playbook: ansible/install/check-collectd-config.yml
   ssh_config: ansible/ssh-config
 elasticsearch:
   enabled: false
@@ -591,6 +601,10 @@ workloads:
         shift_on_stack_workload: poddensity
         shift_on_stack_kubeconfig_paths:
           - /home/stack/.kube/config
+        # num_external_networks are the number of the external networks to be
+        # created as part of rally context for dynamic workloads. These external
+        # networks will be used in a round robin fashion by the iterations.
+        num_external_networks: 16
         # workloads can be 'all', a single workload(Eg. : create_delete_servers),
         # or a comma separated string(Eg. : create_delete_servers,migrate_servers).
         # Currently supported workloads : create_delete_servers, migrate_servers
