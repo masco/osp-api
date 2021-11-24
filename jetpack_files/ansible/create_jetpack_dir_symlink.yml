@@ -1,0 +1,10 @@
+- hosts: localhost
+  tasks:
+  - name: Remove existing symbolic link, if present
+    shell: |
+      rm /var/lib/jenkins/jetpack
+    ignore_errors: yes
+    
+  - name: Create symbolic link to jetpack workspace directory
+    shell: |
+      ln -s $WORKSPACE/jetpack /var/lib/jenkins/jetpack
