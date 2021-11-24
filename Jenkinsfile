@@ -11,6 +11,7 @@ pipeline() {
             sh 'git clone https://github.com/masco/osp-api.git'
             sh 'rm -rf jetpack'
             sh 'git clone https://github.com/redhat-performance/jetpack.git'
+            sh 'ansible-playbook -vvv osp-api/jetpack_files/ansible/create_jetpack_dir_symlink.yml'
         }
     }
     
