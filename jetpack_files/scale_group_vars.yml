@@ -236,7 +236,7 @@ scale_compute_vms: false
 #Specify the controller ifaces for composable roles explicitly in
 #case you need specific machines as controllers. Else default controller
 #machine type is the first node in overcloud_instackenv.json
-composable_roles: false
+composable_roles: true
 #controller_ifaces: []
 # if your machine is 1029U type you need to specify the product type also
 # refer http://wiki.scalelab.redhat.com/1029u/ for list of 1029utn10rt machines
