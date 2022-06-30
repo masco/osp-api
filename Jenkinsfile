@@ -1,10 +1,34 @@
 pipeline() {
   agent any
+  parameters {
+        choice(name: 'LAB', choices: ['None', 'Scale_Lab', 'Alias_Lab'], description: '')
+        
+        string(name: 'CLOUD_NAME', defaultValue: '', description: '')
+        
+        string(name: 'ANSIBLE_SSH_PASSWORD', defaultValue: '', description: '')
+        
+        string(name: 'OSP_VERSION', defaultValue: '', description: '')
+        
+        booleanParam(name: 'TRIGGER_UNDERCLOUD_DEPLOYMENT', defaultValue: true, description: '')
 
+        booleanParam(name: 'TRIGGER_INTROSPECTION', defaultValue: true, description: '')
+        
+        booleanParam(name: 'TRIGGER_TAGGING', defaultValue: true, description: '')
+        
+        booleanParam(name: 'TRIGGER_OVERCLOUD_DEPLOYMENT', defaultValue: true, description: '')
+        
+        booleanParam(name: 'SETUP_MONITORING', defaultValue: false, description: '')
+        
+        booleanParam(name: 'RUN_API_WORKLOADS', defaultValue: false, description: '')
+        
+        booleanParam(name: 'RUN_NETCREATE_BOOT_WORKLOADS', defaultValue: false, description: '')
+        
+        booleanParam(name: 'RUN_DYNAMIC_WORKLOADS', defaultValue: false, description: '')
+  }
   stages {
     stage('setup jetpack') {
         when {
-            expression { TRIGGER_UNDERCLOUD_DEPLOYMENT == 'true' }
+            expression { params.TRIGGER_UNDERCLOUD_DEPLOYMENT }
         }
         steps {
             sh 'rm -rf osp-api'
@@ -17,7 +41,7 @@ pipeline() {
     
     stage('copy alias group vars file from osp-api to jetpack') {
         when {
-            expression { ALIAS_LAB == 'true' }
+            expression { params.LAB == 'Alias_Lab' }
         }
         steps {
             sh 'cp osp-api/jetpack_files/alias_group_vars.yml jetpack/group_vars/all.yml'
@@ -26,7 +50,7 @@ pipeline() {
     
     stage('copy scale group vars file from osp-api to jetpack') {
         when {
-            expression { SCALE_LAB == 'true' }
+            expression { params.LAB == 'Scale_Lab' }
         }
         steps {
             sh 'cp osp-api/jetpack_files/scale_group_vars.yml jetpack/group_vars/all.yml'
@@ -41,7 +65,7 @@ pipeline() {
     
     stage('deploy undercloud using jetpack') {
         when {
-            expression { TRIGGER_UNDERCLOUD_DEPLOYMENT == 'true' }
+            expression { params.TRIGGER_UNDERCLOUD_DEPLOYMENT }
         }
         steps {
             script {
@@ -49,7 +73,7 @@ pipeline() {
                     sh "cd jetpack && ansible-playbook -vvv main.yml -t undercloud"
                 } catch(err) {
                     echo "Undercloud deployment failed on first try. Retrying upto 3 times."
-                    retry(3) {
+                    retry(0) {
                         sh "cd jetpack && ansible-playbook -vvv main.yml -t undercloud"
                     }
                 }
@@ -59,7 +83,7 @@ pipeline() {
     
     stage('introspect nodes') {
         when {
-            expression { TRIGGER_INTROSPECTION == 'true' }
+            expression { params.TRIGGER_INTROSPECTION }
         }
         steps {
             script {
@@ -67,7 +91,7 @@ pipeline() {
                     sh "cd jetpack && ansible-playbook -vvv main.yml -t introspect"
                 } catch(err) {
                     echo "Introspection failed on first try. Retrying upto 3 times."
-                    retry(3) {
+                    retry(0) {
                         sh "cd jetpack && ansible-playbook -vvv main.yml -t introspect"
                     }
                 }
@@ -77,7 +101,7 @@ pipeline() {
     
     stage('tag nodes') {
         when {
-            expression { TRIGGER_TAGGING == 'true' }
+            expression { params.TRIGGER_TAGGING }
         }
         steps {
             script {
@@ -85,7 +109,7 @@ pipeline() {
                     sh "cd jetpack && ansible-playbook -vvv main.yml -t tag"
                 } catch(err) {
                     echo "Tagging failed on first try. Retrying upto 3 times."
-                    retry(3) {
+                    retry(0) {
                         sh "cd jetpack && ansible-playbook -vvv main.yml -t tag"
                     }
                 }
@@ -95,7 +119,7 @@ pipeline() {
     
     stage('deploy overcloud using jetpack') {
         when {
-            expression { TRIGGER_OVERCLOUD_DEPLOYMENT == 'true' }
+            expression { params.TRIGGER_OVERCLOUD_DEPLOYMENT }
         }
         steps {
             script {
@@ -103,7 +127,7 @@ pipeline() {
                     sh "cd jetpack && ansible-playbook -vvv main.yml -t overcloud"
                 } catch(err) {
                     echo "Overcloud post deployment tasks failed on first try. Retrying upto 3 times."
-                    retry(3) {
+                    retry(0) {
                         sh "cd jetpack && ansible-playbook -vvv main.yml -t overcloud"
                     }
                 }
@@ -113,7 +137,7 @@ pipeline() {
     
     stage('install browbeat') {
         when {
-            expression { TRIGGER_OVERCLOUD_DEPLOYMENT == 'true' }
+            expression { params.TRIGGER_OVERCLOUD_DEPLOYMENT }
         }
         steps {
             script {
@@ -121,7 +145,7 @@ pipeline() {
                     sh "cd jetpack && ansible-playbook -i hosts -vvv main.yml -t browbeat"
                 } catch(err) {
                     echo "Browbeat installation tasks failed on first try. Retrying upto 3 times."
-                    retry(3) {
+                    retry(0) {
                         sh "cd jetpack && ansible-playbook -i hosts -vvv main.yml -t browbeat"
                     }
                 }
@@ -131,7 +155,7 @@ pipeline() {
     
     stage('setup monitoring(collectd, graphite, grafana) using browbeat') {
         when {
-            expression { SETUP_MONITORING == 'true' }
+            expression { params.SETUP_MONITORING }
         }
         steps {
             sh "cd osp-api/browbeat_files/ansible && ansible-playbook -i ../../../jetpack/hosts -vvv setup_monitoring.yml"
@@ -140,7 +164,7 @@ pipeline() {
     
     stage('run API testing workloads') {
         when {
-            expression { RUN_API_WORKLOADS == 'true' }
+            expression { params.RUN_API_WORKLOADS }
         }
         steps {
             sh "cd osp-api/browbeat_files/ansible && ansible-playbook -i ../../../jetpack/hosts -t api_workloads -vvv run_workloads.yml"
@@ -149,7 +173,7 @@ pipeline() {
     
     stage('run netcreate-boot workloads') {
         when {
-            expression { RUN_NETCREATE_BOOT_WORKLOADS == 'true' }
+            expression { params.RUN_NETCREATE_BOOT_WORKLOADS }
         }
         steps {
             sh "cd osp-api/browbeat_files/ansible && ansible-playbook -i ../../../jetpack/hosts -t netcreate_boot_workloads -vvv run_workloads.yml"
@@ -158,7 +182,7 @@ pipeline() {
     
     stage('run dynamic workloads') {
         when {
-            expression { RUN_DYNAMIC_WORKLOADS == 'true' }
+            expression { params.RUN_DYNAMIC_WORKLOADS }
         }
         steps {
             sh "cd osp-api/browbeat_files/ansible && ansible-playbook -i ../../../jetpack/hosts -t dynamic_workloads -vvv run_workloads.yml"
